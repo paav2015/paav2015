@@ -4,6 +4,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Value.h"
+#include "llvm/IR/InstIterator.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/ScalarEvolution.h"
@@ -18,7 +19,22 @@ using namespace llvm;
 
 
 namespace {
+
+    void printAllInstsInBlock(const BasicBlock * BB)
+    {
+        for (BasicBlock::const_iterator inst = BB->begin(); inst != BB->end(); ++inst)
+        {
+            const DebugLoc & Loc = inst->getDebugLoc();
+            errs() << "Inst line: " << Loc.getLine() << "\n";
+            inst->dump();
+        }
+
+    }
+
+
 	struct IndependentLoopPass : public FunctionPass {
+
+
 		static char ID;
 		IndependentLoopPass() : FunctionPass(ID) {}
 
@@ -32,6 +48,31 @@ namespace {
 
 			//da.dump();
 
+            // Dump the dependence analysis - shameful copy-paste
+            for (inst_iterator SrcI = inst_begin(F), SrcE = inst_end(F);
+                SrcI != SrcE; ++SrcI) {
+                if (isa<StoreInst>(*SrcI) || isa<LoadInst>(*SrcI)) {
+                    for (inst_iterator DstI = SrcI, DstE = inst_end(F);
+                         DstI != DstE; ++DstI) {
+                        if (isa<StoreInst>(*DstI) || isa<LoadInst>(*DstI)) {
+                            errs() << "da analyze - ";
+                            if (auto D = da.depends(&*SrcI, &*DstI, true)) {
+                                D->dump(errs());
+                                for (unsigned Level = 1; Level <= D->getLevels(); Level++) {
+                                    if (D->isSplitable(Level)) {
+                                        errs() << "da analyze - split level = " << Level;
+                                        errs() << ", iteration = " << da.getSplitIteration(*D, Level);
+                                        errs() << "!\n";
+                                    }
+                                }
+                            }
+                            else
+                                errs() << "none!\n";
+                        }
+                    }
+                }
+            }
+
 
 			for (Function::const_iterator i = F.begin(), e = F.end(); i != e; ++i)
 			{
@@ -43,8 +84,19 @@ namespace {
 				errs() << "Loop depth: " << Depth << "\n";
 				if (Depth > 0)
 				{
+                    errs() << "Depth is " << Depth << " at line " << Loc.getLine() << "\n";
+                    //printAllInstsInBlock(&BB);
+
 					if(LocalLoop)
 					{
+                        const DebugLoc & Loc = LocalLoop->getStartLoc();
+                        errs() << "Loop starts at line " << Loc.getLine() << "\n";
+                        PHINode * phi = LocalLoop->getCanonicalInductionVariable();
+                        if (phi) {
+                            errs() << "Inductive variable: ";
+                            phi->dump();
+                        }
+                        /*
 						BasicBlock * preHeader = LocalLoop->getLoopPreheader();
 						if (preHeader) {
 							errs() << "Preheader: " << preHeader->begin()->getDebugLoc().getLine() << "\n";
@@ -63,6 +115,18 @@ namespace {
 							}
 
 						}
+                        BasicBlock * header = LocalLoop->getHeader();
+                        if (header) {
+                            errs() << "Header: " << header->begin()->getDebugLoc().getLine() << "\n";
+                            errs() << "Name: " << header->getName() << "\n";
+                            printAllInstsInBlock(header);
+                        }
+                        PHINode * phi = LocalLoop->getCanonicalInductionVariable();
+                        if (phi) {
+                            errs() << "Inductive variable: ";
+                            phi->dump();
+                        }
+                         */
 					}
 
 				}
