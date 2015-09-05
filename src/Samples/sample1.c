@@ -1,4 +1,9 @@
 
+// Forward declarations, to avoid additional includes
+int scanf(const char * format, ...);
+int printf(const char * format, ...);
+unsigned long strlen(const char * str);
+
 int f1(int a, int b)
 {
 	return a + b;
@@ -47,6 +52,38 @@ void f5()
 	do {
 		++i;
 	} while(i % 10 != 0);
+}
+
+void f6()
+{
+    char your_name[100];
+    unsigned int i, j;
+    unsigned int name_len;
+
+    scanf("%s", your_name);
+    printf("Hello, %s\n", your_name);
+
+    name_len = strlen(your_name);
+
+    for (i = 0; i < 1000; ++i)
+    {
+        unsigned int to_print_pos;
+        char to_print_char;
+
+        to_print_pos = i % name_len;
+        to_print_char = your_name[i];
+        printf("%c\n", to_print_char);
+    }
+
+    for (j = 0; j < 1000; ++j)
+    {
+        unsigned int to_print_pos;
+        char to_print_char;
+
+        to_print_pos = name_len - (i % name_len);
+        to_print_char = your_name[i];
+        printf("%c\n", to_print_char);
+    }
 }
 
 int main(int argc, char * argv [])
