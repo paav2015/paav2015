@@ -6,21 +6,104 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Value.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/DebugInfo.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/ScalarEvolution.h"
 #include "llvm/Analysis/MemoryDependenceAnalysis.h"
 #include "llvm/Analysis/DependenceAnalysis.h"
 #include "llvm/Analysis/PostDominators.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
 #include "llvm/Support/raw_ostream.h"
+#include "IndependentLoopPass.h"
 
 
 using namespace llvm;
 
 
 namespace {
+
+    LoopDependencyInfo::LoopDependencyInfo() : nFirstSourceLine(0), nSourceLineAfter(0), nDepth(0),
+                                               bIsLoopIndependent(false), bHasInductiveVariable(false)
+    {}
+
+    std::string LoopDependencyInfo::toJson() const {
+        std::stringstream ssOutput;
+
+        ssOutput << "    {\n";
+        ssOutput << "      { 'depth' : " << nDepth << " },\n";
+        ssOutput << "      { 'first_source_line' : " << nFirstSourceLine << " },\n";
+        ssOutput << "      { 'last_source_line' : " << nSourceLineAfter << " }\n";
+        ssOutput << "      { 'inductive_var' : " << (bHasInductiveVariable ? "1" : "0") << " },\n";
+        ssOutput << "      { 'independent' : " << (bIsLoopIndependent ? "1" : "0") << " }\n";
+        ssOutput << "    }";
+
+        return ssOutput.str();
+    }
+
+    std::string LoopDependencyInfo::toSimpleString() const {
+        std::stringstream ssOutput;
+
+        ssOutput << nFirstSourceLine << ":" << nSourceLineAfter;
+
+        return ssOutput.str();
+    }
+
+    std::string FunctionLoopInfo::toJson() const {
+        std::stringstream ssOutput;
+
+        ssOutput << "{\n";
+        ssOutput << "  'file' : {\n";
+        ssOutput << "    { 'name' : '" << sFilename << "' }\n";
+        ssOutput << "  },\n";
+        ssOutput << "  'function' : {\n";
+        ssOutput << "    { 'name' : '" << sFuncname << "' },\n";
+        ssOutput << "    { 'last_source_line' : '" << nLastSourceLine << "' }\n";
+        ssOutput << "  }";
+
+        if (vLoops.size() > 0)
+        {
+            ssOutput << ",\n";
+            ssOutput << "  'loops' : [\n";
+
+            for(std::vector<LoopDependencyInfo>::const_iterator it = vLoops.begin(); it != vLoops.end(); ++it)
+            {
+                ssOutput << it->toJson();
+                ssOutput << ",\n";
+            }
+            // Remove the last ",\n"
+            ssOutput.seekp(-2, ssOutput.cur);
+            ssOutput << "\n";
+
+            ssOutput << "  ]\n";
+        }
+        else
+        {
+            ssOutput << "\n";
+        }
+
+        ssOutput << "}\n";
+
+        return ssOutput.str();
+    }
+
+    std::string FunctionLoopInfo::toSimpleString() const
+    {
+        std::stringstream ssOutput;
+
+        for(std::vector<LoopDependencyInfo>::const_iterator it = vLoops.begin(); it != vLoops.end(); ++it)
+        {
+            const LoopDependencyInfo & curLoop = *it;
+            if (curLoop.bIsLoopIndependent)
+            {
+                ssOutput << sFilename << ":";
+                ssOutput << curLoop.toSimpleString();
+                ssOutput << "\n";
+            }
+        }
+
+        return ssOutput.str();
+    }
+
 
     void printAllInstsInBlock(const BasicBlock * BB)
     {
@@ -29,7 +112,20 @@ namespace {
             const DebugLoc &Loc = inst->getDebugLoc();
             if (!Loc.isUnknown())
             {
+                DIScope Scope(Loc.getScope());
+                //DILocation * diLoc = Loc.getAsMDNode();
+                //auto *Scope = cast<DIScope>(Loc.getScopeNode());
+                //errs() << Scope << "\n";
+                if (Scope) {
+                    errs() << "File name: " << Scope.getFilename() << "\n";
+                    //StringRef sName = Scope->getFilename();
+                    //errs() << "File: " << sName << "\n";
+                }
+
+                //Loc.print(errs());
+
                 errs() << "Inst line: " << Loc.getLine() << "\n";
+
                 inst->dump();
             }
         }
@@ -45,23 +141,52 @@ namespace {
 
 
 		bool runOnFunction(Function &F) {
-            std::stringstream ssOutput;
 
-            ssOutput << "{\n";
+            FunctionLoopInfo functionLoopInfo;
 
-			errs() << "Enterting function: ";
-			errs().write_escaped(F.getName()) << '\n';
+            ScalarEvolution & SE = getAnalysis<ScalarEvolution>();
+            DependenceAnalysis & da = Pass::getAnalysis<DependenceAnalysis>();
+            LoopInfo & LI = Pass::getAnalysis<LoopInfo>();
+
+			//errs() << "Enterting function: ";
+			//errs().write_escaped(F.getName()) << '\n';
 
             // TODO: For finding the source line, is it enough to find the first instruction
             // with debug loc, and reduce the number of arguments from it?
-            F.getArgumentList().size();
+            (void*) F.getArgumentList().size();
 
-            ssOutput << "  'function' : {\n";
-            ssOutput << "    { 'name' : '" << F.getName().str() << "' }\n";
-            ssOutput << "  },\n";
+            functionLoopInfo.sFuncname = F.getName().str();
 
+            const BasicBlock & lastBB = F.back();
+            const Instruction * funcExitInst = lastBB.getTerminator();
+            const DebugLoc & funcLastLoc = funcExitInst->getDebugLoc();
+
+            if (!funcLastLoc.isUnknown()) {
+                functionLoopInfo.nLastSourceLine = funcLastLoc.getLine();
+
+                // Use it for file name as well
+                DIScope Scope(funcLastLoc.getScope());
+                if (Scope) {
+                    functionLoopInfo.sFilename = Scope.getFilename().str();
+                }
+            }
+
+            for (Function::const_iterator i = F.begin(), e = F.end(); i != e; ++i) {
+                const BasicBlock &BB = *i;
+                const Loop *LocalLoop = LI.getLoopFor(&BB);
+                const DebugLoc &Loc = BB.begin()->getDebugLoc();
+                errs() << "Basic block " << &BB << " at line " << Loc.getLine() << ", loop " << LocalLoop << "\n";
+                const Instruction *exitInst = BB.getTerminator();
+                if (exitInst) {
+                    const DebugLoc &exitLoc = exitInst->getDebugLoc();
+                    errs() << "Terminator (at " << exitLoc.getLine() << ") : ";
+                    exitInst->dump();
+                }
+            }
 
             //printAllInstsInBlock(&F.getEntryBlock());
+
+
             /*
             Instruction * entryInst = F.getEntryBlock().getFirstNonPHIOrDbgOrLifetime();
 
@@ -71,38 +196,35 @@ namespace {
             }
              */
 
-
-
-            //errs() << "Function starting at " << F.getEntryBlock().getLandingPadInst()->getDebugLoc().getLine();
-
-			DependenceAnalysis & da = Pass::getAnalysis<DependenceAnalysis>();
-			LoopInfo & LI = Pass::getAnalysis<LoopInfo>();
-
-            ssOutput << "  'loops' : [\n";
-
             for(std::vector<Loop *>::const_iterator it = LI.begin(); it != LI.end(); ++it)
             {
+                LoopDependencyInfo loopDependencyInfo;
                 const Loop *LocalLoop = *it;
                 unsigned Depth = LocalLoop->getLoopDepth();
+                loopDependencyInfo.nDepth = Depth;
+
                 const DebugLoc & localLoopStartLoc = LocalLoop->getStartLoc();
 
-                ssOutput << "    {\n";
-                ssOutput << "      { 'depth' : " << Depth << " },\n";
+                if (!localLoopStartLoc.isUnknown()) {
+                    loopDependencyInfo.nFirstSourceLine = localLoopStartLoc.getLine();
+                }
 
-                if (!localLoopStartLoc.isUnknown())
-                    ssOutput << "      { 'first_source_line' : " << localLoopStartLoc.getLine() << " },\n";
+                // Unless proven otherwise
+                loopDependencyInfo.bIsLoopIndependent = true;
 
                 bool hasInductiveVariable = false;
-                // TODO: Find debug name, etc.
+                // TODO: Find debug name, etc. of induction variable
                 PHINode * phi = LocalLoop->getCanonicalInductionVariable();
                 if (phi) {
+                    /*
                     errs() << "Inductive variable: ";
                     phi->dump();
                     errs().flush();
+                     */
                     hasInductiveVariable = true;
-                }
 
-                ssOutput << "      { 'inductive_var' : " << (hasInductiveVariable ? "1" : "0") << " },\n";
+                    loopDependencyInfo.bHasInductiveVariable = true;
+                }
 
                 /*
                 for (std::vector<BasicBlock *>::const_iterator bbIt = LocalLoop->block_begin();
@@ -117,7 +239,6 @@ namespace {
                 }
                  */
 
-                bool hasDependencies = false;
                 const std::vector<BasicBlock *> & loopBlocks = LocalLoop->getBlocks();
                 std::vector<BasicBlock *>::const_iterator SrcBBit = loopBlocks.begin();
                 while (SrcBBit != loopBlocks.end())
@@ -132,21 +253,24 @@ namespace {
                             BasicBlock::const_iterator DstInstIt = SrcInstIt;
                             bool hasMoreInstructions = (DstInstIt != DstBB->end());
 
-                            errs() << "Source inst: ";
-                            SrcInstIt->dump();
+                            //errs() << "Source inst: ";
+                            //SrcInstIt->dump();
 
                             while (hasMoreInstructions)
                             {
 
                                 if (isa<StoreInst>(*DstInstIt) || isa<LoadInst>(*DstInstIt)) {
-                                    errs() << "Comparing against inst: ";
-                                    DstInstIt->dump();
+                                    //errs() << "Comparing against inst: ";
+                                    //DstInstIt->dump();
 
                                     auto D = da.depends(const_cast<Instruction *>(&(*SrcInstIt)),
                                                         const_cast<Instruction *>(&(*DstInstIt)), true);
                                     if (D) {
-                                        D->dump(errs());
-                                        hasDependencies = true;
+                                        //errs() << "Dependencies in loop starting at " << loopDependencyInfo.nFirstSourceLine << "\n";
+
+                                        //D->dump(errs());
+
+                                        loopDependencyInfo.bIsLoopIndependent &= D->isLoopIndependent();
                                     }
 
 
@@ -180,179 +304,45 @@ namespace {
                     ++SrcBBit;
                 }
 
-                ssOutput << "      { 'deps' : " << (hasDependencies ? "1" : "0") << " }\n";
+                // TODO: When there's no code after the loop, the exit block is the header
+                // Could check if the exit block is part of this loop; in this case it means
+                // it's the function last line?
+                // Also, what if there are multiple BBs in the loop? What if there are multiple exit
+                // blocks?
 
-#if 0
-                //MultiBlockInstIterator SrcI(loopBlocks.cbegin(), loopBlocks.cend());
-                for (MultiBlockInstIterator SrcI(loopBlocks.cbegin(), loopBlocks.cend()); !SrcI.atEnd(); ++SrcI)
-                {
-                    if (isa<StoreInst>(*SrcI) || isa<LoadInst>(*SrcI)) {
-                        for (MultiBlockInstIterator DstI(SrcI); !DstI.atEnd(); ++DstI)
-                        {
-                        //for (inst_iterator DstI = SrcI, DstE = inst_end(LocalLoop->getBlocks().end());
-                           //  DstI != DstE; ++DstI) {
-                            if (isa<StoreInst>(*DstI) || isa<LoadInst>(*DstI)) {
-                                const DebugLoc & SrcLoc = SrcI->getDebugLoc();
-                                const DebugLoc & DstLoc = DstI->getDebugLoc();
-                                errs() << "Analyzing:\nSrc - line " << SrcLoc.getLine();
-                                SrcI->dump();
-                                errs() << "Drc - line " << DstLoc.getLine();
-                                DstI->dump();
-                                errs() << "da analyze - ";
-                                if (auto D = da.depends(const_cast<Instruction *>(&(*SrcI)), const_cast<Instruction *>(&*DstI), true)) {
-                                    D->dump(errs());
-                                    for (unsigned Level = 1; Level <= D->getLevels(); Level++) {
-                                        if (D->isSplitable(Level)) {
-                                            errs() << "da analyze - split level = " << Level;
-                                            errs() << ", iteration = " << da.getSplitIteration(*D, Level);
-                                            errs() << "!\n";
-                                        }
-                                    }
-                                }
-                                else
-                                    errs() << "none!\n";
-                            }
-                        }
+                // It looks like I run into problem with loops where the condition has a variable,
+                // in which case I got two more blocks.
+
+                BasicBlock * bbExit = LocalLoop->getExitBlock();
+
+                if (bbExit) {
+
+                    errs() << "Exit block: " << bbExit << " for loop " << LocalLoop << "\n";
+
+                    // This one doesn't work!
+                    if (LocalLoop == LI.getLoopFor(bbExit))
+                    {
+                        errs() << "Same EXIT BLOCK AND LOOP HURR DURR\n";
                     }
-                }
-#endif
 
-                ssOutput << "    },\n";
+                    const Instruction * exitInst = bbExit->getTerminator();
+                    if (exitInst) {
+                        errs() << "Terminator: ";
+                        exitInst->dump();
+                        DebugLoc Loc = exitInst->getDebugLoc();
+
+                        loopDependencyInfo.nSourceLineAfter = Loc.getLine();
+                    }
+
+                }
+
+                functionLoopInfo.vLoops.push_back(loopDependencyInfo);
+
+
             }
 
-            ssOutput << "  ]\n";
-
-			//da.dump();
-#if 0
-            // Dump the dependence analysis - shameful copy-paste
-            for (inst_iterator SrcI = inst_begin(F), SrcE = inst_end(F);
-                SrcI != SrcE; ++SrcI) {
-                if (isa<StoreInst>(*SrcI) || isa<LoadInst>(*SrcI)) {
-                    for (inst_iterator DstI = SrcI, DstE = inst_end(F);
-                         DstI != DstE; ++DstI) {
-                        if (isa<StoreInst>(*DstI) || isa<LoadInst>(*DstI)) {
-                            const DebugLoc & SrcLoc = SrcI->getDebugLoc();
-                            const DebugLoc & DstLoc = DstI->getDebugLoc();
-                            errs() << "Analyzing:\nSrc - line " << SrcLoc.getLine();
-                            SrcI->dump();
-                            errs() << "Drc - line " << DstLoc.getLine();
-                            DstI->dump();
-                            errs() << "da analyze - ";
-                            if (auto D = da.depends(&*SrcI, &*DstI, true)) {
-                                D->dump(errs());
-                                for (unsigned Level = 1; Level <= D->getLevels(); Level++) {
-                                    if (D->isSplitable(Level)) {
-                                        errs() << "da analyze - split level = " << Level;
-                                        errs() << ", iteration = " << da.getSplitIteration(*D, Level);
-                                        errs() << "!\n";
-                                    }
-                                }
-                            }
-                            else
-                                errs() << "none!\n";
-                        }
-                    }
-                }
-            }
-#endif
-
-			for (Function::const_iterator i = F.begin(), e = F.end(); i != e; ++i)
-			{
-				const BasicBlock & BB = *i;
-				const DebugLoc & Loc = BB.begin()->getDebugLoc();
-				//errs() << "Basic block (name=" << i->getName() << ", at line " << Loc.getLine() << ") has " << i->size() << " instructions.\n";
-				const Loop *LocalLoop = LI.getLoopFor(&BB);
-				unsigned Depth = LI.getLoopDepth(&BB);
-				errs() << "Loop depth: " << Depth << "\n";
-				if (Depth > 0)
-				{
-                    errs() << "Depth is " << Depth << " at line " << Loc.getLine() << "\n";
-                    //printAllInstsInBlock(&BB);
-
-					if(LocalLoop)
-					{
-                        const DebugLoc & Loc = LocalLoop->getStartLoc();
-                        errs() << "Loop starts at line " << Loc.getLine() << "\n";
-                        PHINode * phi = LocalLoop->getCanonicalInductionVariable();
-                        if (phi) {
-                            errs() << "Inductive variable: ";
-                            phi->dump();
-                        }
-                        /*
-						BasicBlock * preHeader = LocalLoop->getLoopPreheader();
-						if (preHeader) {
-							errs() << "Preheader: " << preHeader->begin()->getDebugLoc().getLine() << "\n";
-							errs() << "Name: " << preHeader->getName() << "\n";
-
-							for(BasicBlock::const_iterator inst = BB.begin(); inst != BB.end(); ++inst)
-							{
-								const DebugLoc & Loc = inst->getDebugLoc();
-								errs() << *inst << "\n";
-							}
-
-							BasicBlock * loopParent = preHeader->getPrevNode();
-							if (loopParent)
-							{
-								//errs() << "Prev: " << loopParent->begin()->getDebugLoc().getLine() << "\n";
-							}
-
-						}
-                        BasicBlock * header = LocalLoop->getHeader();
-                        if (header) {
-                            errs() << "Header: " << header->begin()->getDebugLoc().getLine() << "\n";
-                            errs() << "Name: " << header->getName() << "\n";
-                            printAllInstsInBlock(header);
-                        }
-                        PHINode * phi = LocalLoop->getCanonicalInductionVariable();
-                        if (phi) {
-                            errs() << "Inductive variable: ";
-                            phi->dump();
-                        }
-                         */
-					}
-
-				}
-
-			}
-
-			const BasicBlock & BB = F.getEntryBlock();
-			const Instruction *I = BB.begin();
-			const DebugLoc & Loc = I->getDebugLoc();
-			unsigned Line = Loc.getLine();
-
-			//StringRef File = Loc->getFilename();
-			//StringRef Dir = Loc->getDirectory();
-			errs() << "Line: " << Line << "\n";
-
-			// Use LLVM's Strongly Connected Components (SCCs) iterator to produce
-			// a reverse topological sort of SCCs.
-			//outs() << "SCCs for " << F.getName() << " in post-order:\n";
-			for (scc_iterator<Function *> sccI = scc_begin(&F), sccIE = scc_end(&F); sccI != sccIE; ++sccI) {
-				// Obtain the vector of BBs in this SCC and print it out.
-				const std::vector<BasicBlock *> &SCCBBs = *sccI;
-				const BasicBlock * firstBlock = *(SCCBBs.begin());
-				const Instruction *I = firstBlock->begin();
-				const DebugLoc & Loc = I->getDebugLoc();
-				unsigned Line = Loc.getLine();
-
-				//outs() << "  Line: " << Line << " SCC: ";
-				if (sccI.hasLoop())
-				{
-					//outs() << " LOOP!!! ";
-				}
-
-				for (std::vector<BasicBlock *>::const_iterator BBI = SCCBBs.begin(),
-							 BBIE = SCCBBs.end(); BBI != BBIE; ++BBI)
-				{
-					//outs() << (*BBI)->getName() << "  ";
-				}
-				//outs() << "\n";
-			}
-
-            ssOutput << "}\n";
-
-            std::string sOutput = ssOutput.str();
-            errs() << sOutput;
+            errs() << functionLoopInfo.toJson();
+            errs() << functionLoopInfo.toSimpleString();
 
 			return false;
 		}
