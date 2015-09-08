@@ -20,18 +20,23 @@ set(SOURCE_FILES IndependentLoopPass.cpp IndependentLoopPass.h MultiBlockInstIte
 add_library(IndependentLoop SHARED ${SOURCE_FILES})
 
 # Define the samples
-set(SAMPLE_FILES sample1.c)
+set(SAMPLE_FILES sample1.c zlib/gzlib.c zlib/adler32.c zlib/zutil.c zlib/compress.c zlib/crc32.c)
 
 # And compile the samples
 add_custom_target(BuildSamples)
-foreach(_file ${SAMPLES_DIR}/${SAMPLE_FILES})
-        string(REPLACE ".c" ".bc" BITCODE_FILE ${_file})
+foreach(_file ${SAMPLE_FILES})
+        string(REPLACE ".c" ".bc" BITCODE_FILE ${SAMPLES_DIR}/${_file})
+            #-I/usr/include/linux
         add_custom_command(
-                COMMAND clang-3.6 -cc1 ${_file} -emit-llvm -g -O0 -o ${BITCODE_FILE}
-                DEPENDS ${_file}
+                COMMAND clang-3.6 -cc1 ${SAMPLES_DIR}/${_file} -I/usr/include/clang/3.6/include -I/usr/include/`arch`-linux-gnu -I/usr/include/ -v -emit-llvm -g -O0 -o ${BITCODE_FILE}
+                DEPENDS ${SAMPLES_DIR}/${_file}
                 TARGET BuildSamples)
-        #message(WARNING "Added file: ${_file} -> ${BITCODE_FILE}")
-        #message(WARNING "clang -cc1 ${_file} -emit-llvm -g -o ${BITCODE_FILE}")
+        #add_custom_command(
+        #        COMMAND llvm-gcc ${SAMPLES_DIR}/${_file} -emit-llvm -c -g -O0  -o ${BITCODE_FILE}
+        #        DEPENDS ${SAMPLES_DIR}/${_file}
+        #        TARGET BuildSamples)
+        #message(WARNING "Added file: ${SAMPLES_DIR}/${_file} -> ${BITCODE_FILE}")
+        #message(WARNING "llvm-gcc ${SAMPLES_DIR}/${_file} -emit-llvm -c -g -O0 -o ${BITCODE_FILE}")
 endforeach()
 
 add_dependencies(IndependentLoop BuildSamples)

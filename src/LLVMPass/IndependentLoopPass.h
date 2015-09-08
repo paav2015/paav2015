@@ -24,6 +24,11 @@ namespace {
         std::string toSimpleString() const;
         std::string toJson() const;
 
+        inline bool hasSourceReference() const
+        {
+            return (nFirstSourceLine && nSourceLineAfter);
+        }
+
     };
 
     struct FunctionLoopInfo {

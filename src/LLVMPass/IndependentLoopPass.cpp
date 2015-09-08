@@ -93,7 +93,9 @@ namespace {
         for(std::vector<LoopDependencyInfo>::const_iterator it = vLoops.begin(); it != vLoops.end(); ++it)
         {
             const LoopDependencyInfo & curLoop = *it;
-            if (curLoop.bIsLoopIndependent)
+
+            // Only print loops which are independent, and has source information
+            if (curLoop.hasSourceReference() && curLoop.bIsLoopIndependent)
             {
                 ssOutput << sFilename << ":";
                 ssOutput << curLoop.toSimpleString();
@@ -175,12 +177,12 @@ namespace {
                 const BasicBlock &BB = *i;
                 const Loop *LocalLoop = LI.getLoopFor(&BB);
                 const DebugLoc &Loc = BB.begin()->getDebugLoc();
-                errs() << "Basic block " << &BB << " at line " << Loc.getLine() << ", loop " << LocalLoop << "\n";
+                //errs() << "Basic block " << &BB << " at line " << Loc.getLine() << ", loop " << LocalLoop << "\n";
                 const Instruction *exitInst = BB.getTerminator();
                 if (exitInst) {
                     const DebugLoc &exitLoc = exitInst->getDebugLoc();
-                    errs() << "Terminator (at " << exitLoc.getLine() << ") : ";
-                    exitInst->dump();
+                    //errs() << "Terminator (at " << exitLoc.getLine() << ") : ";
+                    //exitInst->dump();
                 }
             }
 
@@ -304,34 +306,34 @@ namespace {
                     ++SrcBBit;
                 }
 
-                // TODO: When there's no code after the loop, the exit block is the header
-                // Could check if the exit block is part of this loop; in this case it means
-                // it's the function last line?
-                // Also, what if there are multiple BBs in the loop? What if there are multiple exit
-                // blocks?
-
-                // It looks like I run into problem with loops where the condition has a variable,
-                // in which case I got two more blocks.
-
+                // Try to understand where is the first block after this loop ends
+                // This is unstable, as it relies on understanding whether the source line
+                // of the basic block exiting the loop comes after the loop itself, will
+                // fail when the next instruction comes in the same line, and maybe on other
+                // cases as well
+                // TODO: Also, we are still not sure about the case where there are multiple
+                // exit points
                 BasicBlock * bbExit = LocalLoop->getExitBlock();
+                while (bbExit &&
+                        loopDependencyInfo.nFirstSourceLine != 0 &&
+                        !loopDependencyInfo.nSourceLineAfter) {
 
-                if (bbExit) {
-
-                    errs() << "Exit block: " << bbExit << " for loop " << LocalLoop << "\n";
-
-                    // This one doesn't work!
-                    if (LocalLoop == LI.getLoopFor(bbExit))
-                    {
-                        errs() << "Same EXIT BLOCK AND LOOP HURR DURR\n";
-                    }
+                    //errs() << "Exit block: " << bbExit << " for loop " << LocalLoop << "\n";
 
                     const Instruction * exitInst = bbExit->getTerminator();
                     if (exitInst) {
-                        errs() << "Terminator: ";
-                        exitInst->dump();
-                        DebugLoc Loc = exitInst->getDebugLoc();
+                        //errs() << "Terminator: ";
+                        //exitInst->dump();
+                        DebugLoc exitInstLoc = exitInst->getDebugLoc();
 
-                        loopDependencyInfo.nSourceLineAfter = Loc.getLine();
+                        unsigned int exitLine = exitInstLoc.getLine();
+                        if (exitLine != loopDependencyInfo.nFirstSourceLine)
+                            loopDependencyInfo.nSourceLineAfter = exitLine;
+                    }
+
+                    if (!loopDependencyInfo.nSourceLineAfter)
+                    {
+                        bbExit = bbExit->getNextNode();
                     }
 
                 }
@@ -342,7 +344,7 @@ namespace {
             }
 
             errs() << functionLoopInfo.toJson();
-            errs() << functionLoopInfo.toSimpleString();
+            //errs() << functionLoopInfo.toSimpleString();
 
 			return false;
 		}
