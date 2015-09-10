@@ -343,8 +343,8 @@ namespace {
 
             }
 
-            errs() << functionLoopInfo.toJson();
-            //errs() << functionLoopInfo.toSimpleString();
+            //errs() << functionLoopInfo.toJson();
+            errs() << functionLoopInfo.toSimpleString();
 
 			return false;
 		}
