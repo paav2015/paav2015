@@ -1,3 +1,6 @@
+cmake_minimum_required(VERSION 2.8)
+project(PAAV15_Project)
+
 # Define the samples
 set(SAMPLE_FILES sample1.c)
 
