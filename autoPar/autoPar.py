@@ -3,6 +3,7 @@ Created on Sep 4, 2015
 
 @author: yogev.vaknin
 '''
+import logging
 
 from  lineInject import LineInjector
 from  injectPlanner import InjectPlanner
@@ -20,6 +21,7 @@ def renameAllOrigFiles(fileOfLoops):
     for line in loopLine:
         fileName = line.split(':')[0]
         if fileName not in handledFiles:
+            logging.debug('moving %s to %s', fileName, fileName + "_orig")
             os.rename(fileName, fileName + "_orig")
             handledFiles.add(fileName)
 
@@ -29,11 +31,13 @@ def revertAllOrigFiles(fileOfLoops):
     for line in loopLine:
         fileName = line.split(':')[0]
         if fileName not in handledFiles:
+            logging.debug('moving %s to %s', fileName + "_orig", fileName)
             shutil.move(fileName + "_orig",fileName)
             handledFiles.add(fileName)
 
 def main(argv=None):
     '''Command line options.'''
+    logging.getLogger().setLevel(logging.DEBUG)
 
     program_name = os.path.basename(sys.argv[0])
 
