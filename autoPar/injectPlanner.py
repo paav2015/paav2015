@@ -22,10 +22,11 @@ class InjectPlanner(object):
     def __isForLoop(self,fileName,lineNumber):
         f=open(fileName)
         lines=f.readlines()
-        if lines['lineNumber'].contains("for"):
+        if "for" in lines[lineNumber]:
             return True
         else:
             return False
+        f.close()
 
     def plan(self, fileOfLoops, planType):
         stringGen = TimeStringGenerator()
