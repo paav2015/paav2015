@@ -1,5 +1,6 @@
 from timeStringGenerator import TimeStringGenerator
 from itertools import izip
+import logging
 
 class PlanType:
     noPar = 1
@@ -28,6 +29,34 @@ class InjectPlanner(object):
             return False
         f.close()
 
+    def __containBracket(self,fileName,lineNumber):
+        f=open(fileName)
+        lines=f.readlines()
+        if "}" in lines[lineNumber]:
+            return True
+        else:
+            return False
+        f.close()
+
+    def reworkLoopFile(self, fileOfLoops, newLoopFile):
+        loopLine = open(fileOfLoops,'r').readlines()
+        dest = open(newLoopFile,'w')
+        for line in loopLine:
+            fileName = line.split(':')[0]
+            startLine = int(line.split(':')[1])
+            endLine = int(line.split(':')[2])
+            if not self.__isForLoop(fileName,startLine):
+                if self.__isForLoop(fileName,startLine-1):
+                    startLine = startLine-1
+                else:
+                    continue
+            if not self.__containBracket(fileName, endLine):
+                logging.warnning('for file %s , didnt find }', fileName)
+                continue
+            dest.write(fileName+":"+str(startLine)+":"+str(endLine))
+        dest.close()
+
+        
     def plan(self, fileOfLoops, planType):
         stringGen = TimeStringGenerator()
         insertPlanDic = {}

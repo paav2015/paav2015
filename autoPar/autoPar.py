@@ -56,7 +56,7 @@ def main(argv=None):
         
     print("run_cmd = %s" % opts.run_cmd)
     print("build_cmd = %s" % opts.build_cmd)
-        
+    injPlanner.reworkLoopFile("raw_input.txt","input.txt")
     renameAllOrigFiles("input.txt")
     
     lineInj = LineInjector()
