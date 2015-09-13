@@ -63,6 +63,7 @@ def main(argv=None):
     injPlanner = InjectPlanner()
     
     injPlan = injPlanner.plan("input.txt", PlanType.noPar)
+    logging.debug('plan no par %s', injPlan)
     for fileName in injPlan:
         lineInj.inject(fileName, fileName[:-5],injPlan[fileName])
     os.system(opts.build_cmd)
@@ -72,6 +73,7 @@ def main(argv=None):
     renameAllOrigFiles("input.txt")
     
     injPlan = injPlanner.plan("input.txt", PlanType.par)
+    logging.debug('plan par %s', injPlan)
     for fileName in injPlan:
         lineInj.inject(fileName, fileName[:-5],injPlan[fileName])
     os.system(opts.build_cmd)
@@ -82,6 +84,7 @@ def main(argv=None):
     renameAllOrigFiles("input.txt")
 
     injPlan = injPlanner.plan("input.txt", PlanType.final)
+    logging.debug('plan final %s', injPlan)
     for fileName in injPlan:
         lineInj.inject(fileName, fileName[:-5],injPlan[fileName])
 
