@@ -19,6 +19,13 @@ class InjectPlanner(object):
         '''
         Constructor
         '''
+    def __isForLoop(self,fileName,lineNumber):
+        f=open(fileName)
+        lines=f.readlines()
+        if lines['lineNumber'].contains("for"):
+            return True
+        else:
+            return False
 
     def plan(self, fileOfLoops, planType):
         stringGen = TimeStringGenerator()
@@ -29,6 +36,10 @@ class InjectPlanner(object):
             fileName += "_orig"
             startLine = int(line.split(':')[1])
             endLine = int(line.split(':')[2])
+
+            if not self.__isForLoop(fileName,startLine):
+                continue
+
             if fileName not in insertPlanDic:
                 insertPlanDic[fileName] = {}
                 if (planType != PlanType.final):
