@@ -16,15 +16,21 @@ from optparse import OptionParser
 
 def renameAllOrigFiles(fileOfLoops):
     loopLine = open(fileOfLoops,'r').readlines()
+    handledFiles = set()
     for line in loopLine:
         fileName = line.split(':')[0]
-        os.rename(fileName, fileName + "_orig")
+        if fileName not in handledFiles:
+            os.rename(fileName, fileName + "_orig")
+            handledFiles.add(fileName)
 
 def revertAllOrigFiles(fileOfLoops):
     loopLine = open(fileOfLoops,'r').readlines()
+    handledFiles = set()
     for line in loopLine:
         fileName = line.split(':')[0]
-        shutil.move(fileName + "_orig",fileName)
+        if fileName not in handledFiles:
+            shutil.move(fileName + "_orig",fileName)
+            handledFiles.add(fileName)
 
 def main(argv=None):
     '''Command line options.'''
