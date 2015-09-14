@@ -23,7 +23,7 @@ class InjectPlanner(object):
     def __isForLoop(self,fileName,lineNumber):
         f=open(fileName)
         lines=f.readlines()
-        if "for" in lines[lineNumber]:
+        if "for" in lines[lineNumber-1]:
             return True
         else:
             return False
@@ -32,7 +32,7 @@ class InjectPlanner(object):
     def __containBracket(self,fileName,lineNumber):
         f=open(fileName)
         lines=f.readlines()
-        if "}" in lines[lineNumber]:
+        if "}" in lines[lineNumber-1]:
             return True
         else:
             return False
