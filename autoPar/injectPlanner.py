@@ -51,7 +51,7 @@ class InjectPlanner(object):
                 else:
                     continue
             if not self.__containBracket(fileName, endLine):
-                logging.warnning('for file %s , didnt find }', fileName)
+                logging.debug('for file %s , didnt find }', fileName)
                 continue
             dest.write(fileName+":"+str(startLine)+":"+str(endLine))
         dest.close()
