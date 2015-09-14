@@ -36,8 +36,11 @@ def revertAllOrigFiles(fileOfLoops):
             handledFiles.add(fileName)
 
 def main(argv=None):
-    '''Command line options.'''
-    logging.getLogger().setLevel(logging.DEBUG)
+    debug = True
+    if (debug):
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
 
     program_name = os.path.basename(sys.argv[0])
 
@@ -69,6 +72,8 @@ def main(argv=None):
     logging.debug('plan no par %s', injPlan)
     for fileName in injPlan:
         lineInj.inject(fileName, fileName[:-5],injPlan[fileName])
+        if (debug):
+            shutil.copy(fileName[:-5], fileName[:-5] + "_no_par")
     os.system(opts.build_cmd)
     os.system(opts.run_cmd + " > out_no_par.txt ")
     
@@ -79,6 +84,8 @@ def main(argv=None):
     logging.debug('plan par %s', injPlan)
     for fileName in injPlan:
         lineInj.inject(fileName, fileName[:-5],injPlan[fileName])
+        if (debug):
+            shutil.copy(fileName[:-5], fileName[:-5] + "_par")
     os.system(opts.build_cmd)
     os.system(opts.run_cmd + " > out_par.txt ")
     
