@@ -67,7 +67,7 @@ class InjectPlanner(object):
                 else:
                     logging.debug('for file %s , didnt find }, line num %s', fileName,str(endLine))
                     continue
-            dest.write(fileName+":"+str(startLine)+":"+str(endLine))
+            dest.write(fileName+":"+str(startLine)+":"+str(endLine)+"\n")
         dest.close()
 
         
