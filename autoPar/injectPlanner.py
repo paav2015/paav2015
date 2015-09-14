@@ -60,9 +60,9 @@ class InjectPlanner(object):
                     logging.debug('for file %s , didnt find for, line %s,%s', fileName,str(startLine),str(startLine-1))
                     continue
             if not self.__containBracket(fileName, endLine):
-                if self.__isForLoop(fileName,endLine-1):
+                if self.__containBracket(fileName,endLine-1):
                     endLine = endLine-1
-                elif self.__isForLoop(fileName,endLine-2):
+                elif self.__containBracket(fileName,endLine-2):
                     endLine = endLine-2
                 else:
                     logging.debug('for file %s , didnt find }, line num %s', fileName,str(endLine))
