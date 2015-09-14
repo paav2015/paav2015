@@ -24,11 +24,11 @@ class InjectPlanner(object):
         f=open(fileName)
         lines=f.readlines()
         if "for" in lines[lineNumber-1]:
-            logging.debug('find for, return True for file %s line num %s, line : %s', fileName,srt(lineNumber -1),lines[lineNumber-1])
+            logging.debug('find for, return True for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
             f.close()
             return True
         else:
-            logging.debug('find for, return False for file %s line num %s, line : %s', fileName,srt(lineNumber -1),lines[lineNumber-1])
+            logging.debug('find for, return False for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
             f.close()
             return False
 
@@ -37,11 +37,11 @@ class InjectPlanner(object):
         f=open(fileName)
         lines=f.readlines()
         if "}" in lines[lineNumber-1]:
-            logging.debug('find }, return True for file %s line num %s, line : %s', fileName,srt(lineNumber -1),lines[lineNumber-1])
+            logging.debug('find }, return True for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
             f.close()
             return True
         else:
-            logging.debug('find }, return False for file %s line num %s, line : %s', fileName,srt(lineNumber -1),lines[lineNumber-1])
+            logging.debug('find }, return False for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
             f.close()
             return False
 
@@ -57,10 +57,10 @@ class InjectPlanner(object):
                 if self.__isForLoop(fileName,startLine-1):
                     startLine = startLine-1
                 else:
-                    logging.debug('for file %s , didnt find for, line %s,%s', fileName,srt(startLine),str(startLine-1))
+                    logging.debug('for file %s , didnt find for, line %s,%s', fileName,str(startLine),str(startLine-1))
                     continue
             if not self.__containBracket(fileName, endLine):
-                logging.debug('for file %s , didnt find }, line %s,%s', fileName,srt(endLine))
+                logging.debug('for file %s , didnt find }, line num %s', fileName,str(endLine))
                 continue
             dest.write(fileName+":"+str(startLine)+":"+str(endLine))
         dest.close()
