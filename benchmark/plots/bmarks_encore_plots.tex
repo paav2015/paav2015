@@ -1,0 +1,129 @@
+\documentclass[a4paper,10pt]{scrartcl}
+% \usepackage{fullpage}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{multirow}
+\usepackage{tikz}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage[caption=false,font=footnotesize]{subfig}
+\usepackage{caption}
+\makeatletter
+\providecommand\phantomcaption{\caption@refstepcounter\@captype}
+\makeatother
+
+\definecolor{gray}{rgb}{0.8,0.8,0.8}
+\begin{document}
+
+\begin{figure}
+    \centering
+    \subfloat[][bodytrack\label{fig.bodytrack_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/bodytrack}}
+    \subfloat[][c-ray\label{fig.c-ray_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/c-ray-mt}} \\
+    \subfloat[][h264dec\label{fig.h264dec_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/h264dec}}
+    \subfloat[][kmeans\label{fig.kmeans_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/kmeans}} \\
+    \subfloat[][md5\label{fig.md5_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/md5}}
+    \subfloat[][ray-rot\label{fig.ray-rot_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/ray-rot}} \\
+    \phantomcaption
+\end{figure}
+
+\begin{figure}
+    \ContinuedFloat
+    \subfloat[][rgbyuv\label{fig.rgbyuv_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/rgbyuv}}
+    \subfloat[][rotate\label{fig.rotate_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/rot}} \\
+    \subfloat[][rot-cc\label{fig.rot-cc_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/rot-cc}}
+    \subfloat[][streamcluster\label{fig.streamcluster_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/streamcluster}} \\
+    \subfloat[][tinyjpeg\label{fig.tinyjpeg_ccnuma}]{
+      \includegraphics[width=0.50\textwidth]{ccnuma-40/tinyjpeg}}\\
+    \caption{Speedup results on 40-core ccNUMA (4x E7-4870)}
+    \label{fig:speedup_ccnuma40}
+\end{figure}
+
+\begin{sidewaystable}
+\centering
+\small
+\caption{Relative performance and geometric means of OmpSs compared to regular Pthreads on 40-core ccnuma. }
+\input{ccnuma-40/geomean_pthread_ompss}
+\label{geomean_ompss_pthread_ccnuma}
+
+\vspace{4em}
+\small
+\caption{Relative performance and geometric means of OmpSs compared to Pthreads with pinning on 40-core ccnuma. }
+\input{ccnuma-40/geomean_pthread_pinned_ompss}
+\label{geomean_ompss_pthread_pinned_ccnuma}
+\end{sidewaystable}
+
+
+\begin{figure}
+    \centering
+    \subfloat[][bodytrack\label{fig.bodytrack_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/bodytrack}}
+    \subfloat[][c-ray\label{fig.c-ray_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/c-ray-mt}} \\
+    \subfloat[][h264dec\label{fig.h264dec_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/h264dec}}
+    \subfloat[][kmeans\label{fig.kmeans_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/kmeans}} \\
+    \subfloat[][md5\label{fig.md5_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/md5}}
+    \subfloat[][ray-rot\label{fig.ray-rot_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/ray-rot}} \\
+    \phantomcaption
+\end{figure}
+
+\begin{figure}
+    \ContinuedFloat
+    \subfloat[][rgbyuv\label{fig.rgbyuv_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/rgbyuv}}
+    \subfloat[][rotate\label{fig.rotate_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/rot}} \\
+    \subfloat[][rot-cc\label{fig.rot-cc_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/rot-cc}}
+    \subfloat[][streamcluster\label{fig.streamcluster_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/streamcluster}} \\
+    \subfloat[][tinyjpeg\label{fig.tinyjpeg_tilegx}]{
+      \includegraphics[width=0.50\textwidth]{tilegx36/tinyjpeg}}\\
+    \caption{Speedup results on 36-core Tilegx36@1.0Ghz}
+    \label{fig:speedup_tilegx}
+\end{figure}
+
+\enlargethispage{10\baselineskip}
+\begin{sidewaystable}
+\centering
+\small
+\caption{Relative performance and geometric means of OmpSs compared to regular Pthreads for working benchmarks on Tilegx36. }
+\input{tilegx36/geomean_pthread_ompss}
+
+\label{geomean_ompss_pthread_tilegx}
+
+\small
+\caption{Relative performance and geometric means of OmpSs compared to Pthreads with pinning for working benchmarks on Tilegx36. }
+\input{tilegx36/geomean_pthread_pinned_ompss}
+
+\label{geomean_ompss_pthread_pinned_tilegx}
+
+\small
+\caption{Relative performance and geometric means of OmpSs compared to regular Pthreads for benchmarks with performance issues on Tilegx36. }
+\input{tilegx36/geomean_pthread_ompss_broken}
+\label{geomean_ompss_pthread_broken_tilegx}
+
+\small
+\caption{Relative performance and geometric means of OmpSs compared to Pthreads with pinning for benchmarks with performance issues on Tilegx36. }
+\input{tilegx36/geomean_pthread_pinned_ompss_broken}
+
+\label{geomean_ompss_pthread_pinned_broken_tilegx}
+\end{sidewaystable}
+
+\end{document}
