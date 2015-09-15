@@ -7,7 +7,7 @@ from glue import Gluer
 
 if __name__ == '__main__':
     glue = Gluer()
-    files = glue.collectAllFiles("../bench/")
+    files = glue.collectAllFiles("../benchmark/")
     print files
     glue.genBitcodeForAllFiles(files)
     glue.genAllOutput(files)

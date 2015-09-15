@@ -27,7 +27,7 @@ class Gluer(object):
     def genBitcodeForAllFiles(self, files):
         for file in files:
             bitcodeFilename =file[:-1] + "bc"
-            commandString = "clang -O0 -c -emit-llvm " +file +" -o " + bitcodeFilename
+            commandString = "clang-3.6 -O0 -c -emit-llvm " +file +" -o " + bitcodeFilename
             os.system(commandString)
 
     def genAllOutput(self,files):
