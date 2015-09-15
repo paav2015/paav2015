@@ -1,5 +1,6 @@
 from timeStringGenerator import TimeStringGenerator
 from itertools import izip
+import logging
 
 class PlanType:
     noPar = 1
@@ -22,12 +23,54 @@ class InjectPlanner(object):
     def __isForLoop(self,fileName,lineNumber):
         f=open(fileName)
         lines=f.readlines()
-        if "for" in lines[lineNumber]:
+        if "for" in lines[lineNumber-1]:
+            logging.debug('find for, return True for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
+            f.close()
             return True
         else:
+            logging.debug('find for, return False for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
+            f.close()
             return False
-        f.close()
 
+
+    def __containBracket(self,fileName,lineNumber):
+        f=open(fileName)
+        lines=f.readlines()
+        if "}" in lines[lineNumber-1]:
+            logging.debug('find }, return True for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
+            f.close()
+            return True
+        else:
+            logging.debug('find }, return False for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
+            f.close()
+            return False
+
+
+    def reworkLoopFile(self, fileOfLoops, newLoopFile):
+        loopLine = open(fileOfLoops,'r').readlines()
+        dest = open(newLoopFile,'w')
+        for line in loopLine:
+            fileName = line.split(':')[0]
+            startLine = int(line.split(':')[1])
+            endLine = int(line.split(':')[2])
+            if not self.__isForLoop(fileName,startLine):
+                if self.__isForLoop(fileName,startLine-1):
+                    startLine = startLine-1
+                else:
+                    logging.debug('for file %s , didnt find for, line %s,%s', fileName,str(startLine),str(startLine-1))
+                    continue
+            if not self.__containBracket(fileName, endLine):
+                if self.__containBracket(fileName,endLine-1):
+                    endLine = endLine-1
+                elif self.__containBracket(fileName,endLine-2):
+                    endLine = endLine-2
+                else:
+                    logging.debug('for file %s , didnt find }, line num %s', fileName,str(endLine))
+                    continue
+            dest.write(fileName+":"+str(startLine)+":"+str(endLine)+"\n")
+        dest.close()
+
+        
     def plan(self, fileOfLoops, planType):
         stringGen = TimeStringGenerator()
         insertPlanDic = {}
