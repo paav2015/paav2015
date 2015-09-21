@@ -4,7 +4,7 @@ Created on Sep 4, 2015
 @author: yogev.vaknin
 '''
 import logging
-
+from glue import Gluer
 from  lineInject import LineInjector
 from  injectPlanner import InjectPlanner
 from  injectPlanner import PlanType
