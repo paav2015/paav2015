@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS  = -O3 -ffast-math
+CFLAGS  = -O3  -ffast-math -fopenmp 
 LIBS = -lm
 SOURCES = c-ray-mt.c
 OBJECTS = $(SOURCES:.c=.o)

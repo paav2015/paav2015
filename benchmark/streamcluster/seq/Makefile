@@ -2,7 +2,7 @@
 
 TARGET=streamcluster
 OBJS=util.o streamcluster.o
-CFLAGS=-g -std=gnu99 -O2
+CFLAGS=-g -std=gnu99 -O2 -fopenmp
 #-D ENABLE_THREADS
 LDFLAGS= -pthread 
 LIBS=-lm
