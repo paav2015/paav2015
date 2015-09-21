@@ -1,0 +1,5 @@
+make -C './c-ray/seq/'
+make -C './kmeans/seq/'
+make -C './rgbyuv/seq/'
+make -C './streamcluster/seq/'
+make -C './tinyjpeg/seq/'
