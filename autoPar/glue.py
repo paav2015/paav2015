@@ -1,6 +1,7 @@
 
 import fnmatch
 import os
+import logging
 
 '''
 clang -O0 -c -emit-llvm ./src/Samples/sample1.c -o ./src/Samples/sample1.cb
@@ -28,7 +29,11 @@ class Gluer(object):
         for file in files:
             bitcodeFilename =file[:-1] + "bc"
             commandString = "clang-3.6 -O0 -c -emit-llvm " +file +" -o " + bitcodeFilename
-            os.system(commandString)
+            try:
+                os.system(commandString)
+            except:
+                logging.info('failed to builed %s', file)
+            
 
     def genAllOutput(self,files):
         for file in files:
