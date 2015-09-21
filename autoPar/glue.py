@@ -31,6 +31,7 @@ class Gluer(object):
             bitcodeFilename =file[:-1] + "bc"
             commandString = "clang-3.6 -cc1 " +file +"  -I/usr/include/clang/3.6/include -I/usr/include/`arch`-linux-gnu -I/usr/include/ -v -emit-llvm -g -O0 -o " + bitcodeFilename
             try:
+		logging.info('Running %s', commandString)
                 os.system(commandString)
             except:
                 logging.info('failed to builed %s', file)
