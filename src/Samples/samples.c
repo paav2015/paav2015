@@ -86,6 +86,31 @@ void f6()
     }
 }
 
+void f7(int b)
+{
+    int numbers[100];
+    int bumbers[100];
+    unsigned long j;
+
+    for (j = 0; j < 25; ++j)
+    {
+        numbers[j] = b;
+        numbers[j * 2 + 1] = bumbers[j * 4];
+        bumbers[j * 4] = j;
+    }
+}
+
+void f8()
+{
+    int arr[1000];
+    for (int i = 0; i < 99; ++i)
+    {
+        arr[i] = i;
+        arr[i * 2] = arr[i];
+        arr[i * 10 + 5] = i;
+    }
+}
+
 int main(int argc, char * argv [])
 {
 	f1(1,2);

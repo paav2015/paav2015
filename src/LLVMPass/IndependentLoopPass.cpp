@@ -35,6 +35,13 @@ namespace {
         ssOutput << "      { 'last_source_line' : " << nSourceLineAfter << " }\n";
         ssOutput << "      { 'inductive_var' : " << (bHasInductiveVariable ? "1" : "0") << " },\n";
         ssOutput << "      { 'independent' : " << (bIsLoopIndependent ? "1" : "0") << " }\n";
+        ssOutput << "      { 'GEP_vars' : [";
+        for (std::vector<std::string>::const_iterator it = vGEPVariables.begin(); it != vGEPVariables.end(); ++it) {
+            ssOutput << "'" << *it << "', ";
+        }
+        // Remove the last ','
+        ssOutput.seekp(-1, ssOutput.cur);
+        ssOutput << "]\n";
         ssOutput << "    }";
 
         return ssOutput.str();
@@ -134,6 +141,13 @@ namespace {
 
     }
 
+    static
+    const Value *getPointerOperand(const Instruction *I) {
+
+
+        return nullptr;
+    }
+
 
 	struct IndependentLoopPass : public FunctionPass {
 
@@ -150,12 +164,16 @@ namespace {
             DependenceAnalysis & da = Pass::getAnalysis<DependenceAnalysis>();
             LoopInfo & LI = Pass::getAnalysis<LoopInfo>();
 
-			//errs() << "Enterting function: ";
-			//errs().write_escaped(F.getName()) << '\n';
+#if VERBOSE_PRINTS
+			errs() << "Enterting function: ";
+			errs().write_escaped(F.getName()) << '\n';
+#endif
 
+#if ADVANCED_ANALYSIS
             // TODO: For finding the source line, is it enough to find the first instruction
             // with debug loc, and reduce the number of arguments from it?
             (void*) F.getArgumentList().size();
+#endif
 
             functionLoopInfo.sFuncname = F.getName().str();
 
@@ -163,6 +181,7 @@ namespace {
             const Instruction * funcExitInst = lastBB.getTerminator();
             const DebugLoc & funcLastLoc = funcExitInst->getDebugLoc();
 
+            // TODO: Fallback?
             if (!funcLastLoc.isUnknown()) {
                 functionLoopInfo.nLastSourceLine = funcLastLoc.getLine();
 
@@ -184,8 +203,49 @@ namespace {
                     //errs() << "Terminator (at " << exitLoc.getLine() << ") : ";
                     //exitInst->dump();
                 }
+
             }
 
+#if ADVANCED_ANALYSIS
+
+            for (inst_iterator SrcI = inst_begin(F), SrcE = inst_end(F); SrcI != SrcE; ++SrcI)
+            {
+                // TODO: Use this code to get the "important" variable names (arrays and possibly pointers)
+
+                Instruction *Src = &(*SrcI);
+                const DebugLoc &Loc = Src->getDebugLoc();
+
+                const Value *SrcPtr = nullptr;
+                if (const LoadInst *LI = dyn_cast<LoadInst>(Src))
+                    SrcPtr = LI->getPointerOperand();
+                else if (const StoreInst *SI = dyn_cast<StoreInst>(Src))
+                    SrcPtr = SI->getPointerOperand();
+                else continue;
+
+                const GEPOperator *SrcGEP = dyn_cast<GEPOperator>(SrcPtr);
+
+                if (SrcGEP) {
+                    errs() << "At line " << Loc.getLine() << ": ";
+                    Src->dump();
+
+                    errs() << "    SrcGEP = " << SrcGEP << "\n";
+                    const SCEV *SrcPtrSCEV = SE.getSCEV(const_cast<Value *>(SrcGEP->getPointerOperand()));
+                    errs() << "    SrcPtrSCEV = " << *SrcPtrSCEV << "\n";
+
+                    const SCEV *SrcSCEV = SE.getSCEV(const_cast<Value *>(SrcPtr));
+                    errs() << "    SrcSCEV = " << *SrcSCEV << "\n";
+
+                    for (GEPOperator::const_op_iterator SrcIdx = SrcGEP->idx_begin(),
+                                 SrcEnd = SrcGEP->idx_end();
+                         SrcIdx != SrcEnd;
+                         ++SrcIdx) {
+                        const SCEV *SrcSCEV = SE.getSCEV(*SrcIdx);
+                        errs() << "    SrcSCEV (in loop) = " << *SrcSCEV << "\n";
+                    }
+                }
+            }
+
+#endif
             //printAllInstsInBlock(&F.getEntryBlock());
 
 
@@ -204,6 +264,10 @@ namespace {
                 const Loop *LocalLoop = *it;
                 unsigned Depth = LocalLoop->getLoopDepth();
                 loopDependencyInfo.nDepth = Depth;
+
+                // Skip loops with depth > 1
+                if (Depth > 1)
+                    continue;
 
                 const DebugLoc & localLoopStartLoc = LocalLoop->getStartLoc();
 
@@ -268,10 +332,11 @@ namespace {
                                     auto D = da.depends(const_cast<Instruction *>(&(*SrcInstIt)),
                                                         const_cast<Instruction *>(&(*DstInstIt)), true);
                                     if (D) {
-                                        //errs() << "Dependencies in loop starting at " << loopDependencyInfo.nFirstSourceLine << "\n";
+#if VERBOSE_PRINTS
+                                        errs() << "Dependencies in loop starting at " << loopDependencyInfo.nFirstSourceLine << "\n";
 
-                                        //D->dump(errs());
-
+                                        D->dump(errs());
+#endif
                                         loopDependencyInfo.bIsLoopIndependent &= D->isLoopIndependent();
                                     }
 
@@ -343,7 +408,7 @@ namespace {
 
             }
 
-            //errs() << functionLoopInfo.toJson();
+            //errs() << functionLoopInfo.toJson()
             errs() << functionLoopInfo.toSimpleString();
 
 			return false;

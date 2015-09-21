@@ -21,6 +21,8 @@ namespace {
         bool bIsLoopIndependent;
         bool bHasInductiveVariable;
 
+        std::vector<std::string> vGEPVariables;
+
         std::string toSimpleString() const;
         std::string toJson() const;
 

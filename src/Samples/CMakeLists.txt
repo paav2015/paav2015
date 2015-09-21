@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(PAAV15_Project)
 
 # Define the samples
-set(SAMPLE_FILES sample1.c)
+set(SAMPLE_FILES samples.c test1.c test2.c test3.c test4.c test5.c test6.c test7.c test8.c test9.c test10.c)
 
 # And compile the samples
 add_custom_target(BuildSamples)
