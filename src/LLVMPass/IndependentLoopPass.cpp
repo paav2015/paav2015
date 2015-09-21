@@ -19,6 +19,11 @@
 
 using namespace llvm;
 
+#define OUTPUT_PREFIX "Independent_Loop"
+#define IF_DBG if (!g_dbg) {} else
+#define MY_DBG_PRINT IF_DBG errs()
+
+static bool g_dbg = false;
 
 namespace {
 
@@ -104,6 +109,7 @@ namespace {
             // Only print loops which are independent, and has source information
             if (curLoop.hasSourceReference() && curLoop.bIsLoopIndependent)
             {
+                ssOutput << OUTPUT_PREFIX << ":";
                 ssOutput << sFilename << ":";
                 ssOutput << curLoop.toSimpleString();
                 ssOutput << "\n";
@@ -141,18 +147,11 @@ namespace {
 
     }
 
-    static
-    const Value *getPointerOperand(const Instruction *I) {
-
-
-        return nullptr;
-    }
-
 
 	struct IndependentLoopPass : public FunctionPass {
 
-
 		static char ID;
+
 		IndependentLoopPass() : FunctionPass(ID) {}
 
 
@@ -164,10 +163,8 @@ namespace {
             DependenceAnalysis & da = Pass::getAnalysis<DependenceAnalysis>();
             LoopInfo & LI = Pass::getAnalysis<LoopInfo>();
 
-#if VERBOSE_PRINTS
-			errs() << "Enterting function: ";
-			errs().write_escaped(F.getName()) << '\n';
-#endif
+            MY_DBG_PRINT << "Enterting function: ";
+            IF_DBG errs().write_escaped(F.getName()) << '\n';
 
 #if ADVANCED_ANALYSIS
             // TODO: For finding the source line, is it enough to find the first instruction
@@ -307,10 +304,12 @@ namespace {
 
                 const std::vector<BasicBlock *> & loopBlocks = LocalLoop->getBlocks();
                 std::vector<BasicBlock *>::const_iterator SrcBBit = loopBlocks.begin();
-                while (SrcBBit != loopBlocks.end())
+                while (SrcBBit != loopBlocks.end() && loopDependencyInfo.bIsLoopIndependent)
                 {
                     BasicBlock * SrcBB = *SrcBBit;
-                    for (BasicBlock::const_iterator SrcInstIt = SrcBB->begin(); SrcInstIt != SrcBB->end(); ++SrcInstIt)
+                    for (BasicBlock::const_iterator SrcInstIt = SrcBB->begin();
+                         SrcInstIt != SrcBB->end() && loopDependencyInfo.bIsLoopIndependent;
+                         ++SrcInstIt)
                     {
                         if (isa<StoreInst>(*SrcInstIt) || isa<LoadInst>(*SrcInstIt))
                         {
@@ -319,25 +318,25 @@ namespace {
                             BasicBlock::const_iterator DstInstIt = SrcInstIt;
                             bool hasMoreInstructions = (DstInstIt != DstBB->end());
 
-                            //errs() << "Source inst: ";
-                            //SrcInstIt->dump();
+                            MY_DBG_PRINT << "Source inst: ";
+                            IF_DBG SrcInstIt->dump();
 
-                            while (hasMoreInstructions)
+                            while (hasMoreInstructions && loopDependencyInfo.bIsLoopIndependent)
                             {
 
                                 if (isa<StoreInst>(*DstInstIt) || isa<LoadInst>(*DstInstIt)) {
-                                    //errs() << "Comparing against inst: ";
-                                    //DstInstIt->dump();
+                                    MY_DBG_PRINT << "Comparing against inst: ";
+                                    IF_DBG DstInstIt->dump();
 
                                     auto D = da.depends(const_cast<Instruction *>(&(*SrcInstIt)),
                                                         const_cast<Instruction *>(&(*DstInstIt)), true);
                                     if (D) {
-#if VERBOSE_PRINTS
-                                        errs() << "Dependencies in loop starting at " << loopDependencyInfo.nFirstSourceLine << "\n";
+                                        MY_DBG_PRINT << "Dependencies in loop starting at " << loopDependencyInfo.nFirstSourceLine << "\n";
+                                        IF_DBG D->dump(errs());
 
-                                        D->dump(errs());
-#endif
-                                        loopDependencyInfo.bIsLoopIndependent &= D->isLoopIndependent();
+                                        // In doubt, assume dependence
+                                        if (D->isConfused() || !D->isLoopIndependent())
+                                            loopDependencyInfo.bIsLoopIndependent = false;
                                     }
 
 
@@ -417,6 +416,7 @@ namespace {
 
 		virtual bool doInitialization(Module &M)
 		{
+            //g_dbg = true;
 			return true;
 		}
 
