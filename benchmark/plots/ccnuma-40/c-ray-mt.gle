@@ -1,0 +1,19 @@
+size 10 7
+set texscale fixed
+set hei 0.30
+set font ss
+
+begin graph
+  scale auto
+  xtitle "Threads"
+  ytitle "Speedup"
+  xsubticks off
+  xaxis dticks 2
+  xaxis min 0.01 max 40
+  yaxis min 0.01 max 40
+  key pos tl compact nobox
+  data "c-ray-mt.csv"
+  d1 line color royalblue marker diamond msize 0.2
+  d2 line color firebrick marker oplus msize 0.2
+  d3 line lstyle 3 color orangered
+end graph
