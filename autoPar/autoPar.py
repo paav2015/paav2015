@@ -50,7 +50,8 @@ def main(argv=None):
     # setup option parser
     parser = OptionParser()
     parser.add_option("-r", "--run_cmd", dest="run_cmd", help="cmd for running the benchmark")
-    parser.add_option("-b", "--build_cmd", dest="build_cmd", help="cmd for building the program (should support openML lib")
+    parser.add_option("-b", "--build_cmd", dest="build_cmd", help="cmd for building the program (should support openML lib)")
+    parser.add_option("-d", "--src_dir", dest="src_dir", help="source directory")
     
 
     # process options
@@ -59,13 +60,24 @@ def main(argv=None):
         
     print("run_cmd = %s" % opts.run_cmd)
     print("build_cmd = %s" % opts.build_cmd)
+    print("src_dir = %s" % opts.src_dir)
+    
+    os.system("rm -f ./input.txt")
+    os.system("rm -f ./raw_input.txt")
+    os.system("rm -f ./raw_input_filtered.txt")
+    
+    glue = Gluer()
+    files = glue.collectAllFiles(opts.src_dir)
+    logging.debug('work files %s', files)
+    glue.genBitcodeForAllFiles(files)
+    glue.genAllOutput(files)
     
     
     lineInj = LineInjector()
     injPlanner = InjectPlanner()
     
-    
-    injPlanner.reworkLoopFile("raw_input.txt","input.txt")
+    os.system("cat ./raw_input.txt | grep \".c:\" > ./raw_input_filtered.txt")
+    injPlanner.reworkLoopFile("./raw_input_filtered","./input.txt")
     renameAllOrigFiles("input.txt")
     
     injPlan = injPlanner.plan("input.txt", PlanType.noPar)
