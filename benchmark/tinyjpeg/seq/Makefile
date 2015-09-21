@@ -1,5 +1,5 @@
-CFLAGS = -Wall -Wextra -O2 -g -DDEBUG=0 -std=c99
-LDFLAGS := -pthread
+CFLAGS = -Wall -Wextra -O2 -g -DDEBUG=0 -std=c99 -fopenmp
+LDFLAGS := -pthread -fopenmp
 CC = gcc
 RM = rm -f
 

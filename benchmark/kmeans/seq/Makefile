@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -g -O2 -std=gnu99
-LDFLAGS = 
+CFLAGS = -g -O2 -std=gnu99 -fopenmp
+LDFLAGS = -fopenmp 
 
 LIBS = -lm
 TARGET = kmeans

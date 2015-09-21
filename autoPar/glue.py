@@ -1,4 +1,4 @@
-
+import subprocess
 import fnmatch
 import os
 import logging
@@ -31,6 +31,7 @@ class Gluer(object):
             bitcodeFilename =file[:-1] + "bc"
             commandString = "clang-3.6 -cc1 " +file +"  -I/usr/include/clang/3.6/include -I/usr/include/`arch`-linux-gnu -I/usr/include/ -v -emit-llvm -g -O0 -o " + bitcodeFilename
             try:
+		logging.info('Running %s', commandString)
                 os.system(commandString)
             except:
                 logging.info('failed to builed %s', file)
@@ -39,9 +40,10 @@ class Gluer(object):
     def genAllOutput(self,files):
         for file in files:
             bitcodeFilename =file[:-1] + "bc"
-            commandString = "opt-3.6 -load ../src/LLVMPass/libIndependentLoop.so -basicaa -mem2reg -simplifycfg -loop-simplify -loop-rotate -instcombine -indvars -indloop "+bitcodeFilename + "  -o /dev/null &>> ./raw_input.txt"
+            commandString = "opt-3.6 -load ../src/LLVMPass/libIndependentLoop.so -basicaa -mem2reg -simplifycfg -loop-simplify -loop-rotate -instcombine -indvars -indloop "+bitcodeFilename + "  -o /dev/null 2>> ./raw_input.txt"
+            logging.info('Running %s', bitcodeFilename)
             try:
-                logging.info('Running %s', bitcodeFilename)
-                os.system(commandString)
+                output = subprocess.check_output(commandString, shell=True)
             except:
-                logging.info('failed to analize %s', bitcodeFilename)
+                logging.info('failed to analize %s', file)
+ 
