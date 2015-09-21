@@ -1,4 +1,4 @@
-
+import subprocess
 import fnmatch
 import os
 import logging
@@ -39,11 +39,10 @@ class Gluer(object):
     def genAllOutput(self,files):
         for file in files:
             bitcodeFilename =file[:-1] + "bc"
-            commandString = "opt-3.6 -load ../src/LLVMPass/libIndependentLoop.so -basicaa -mem2reg -simplifycfg -loop-simplify -loop-rotate -instcombine -indvars -indloop "+bitcodeFilename + "  -o /dev/null "
+            commandString = "opt-3.6 -load ../src/LLVMPass/libIndependentLoop.so -basicaa -mem2reg -simplifycfg -loop-simplify -loop-rotate -instcombine -indvars -indloop "+bitcodeFilename + "  -o /dev/null 2>> ./raw_input.txt"
+            logging.info('Running %s', bitcodeFilename)
             try:
-                logging.info('Running %s', bitcodeFilename)
                 output = subprocess.check_output(commandString, shell=True)
-                logging.debug('output %s', output)
-                open("./raw_input.txt","wb").write(output)
             except:
-                logging.info('failed to analize %s', bitcodeFilename)
+                logging.info('failed to analize %s', file)
+ 
