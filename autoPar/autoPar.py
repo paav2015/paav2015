@@ -63,6 +63,8 @@ def main(argv=None):
     print("src_dir = %s" % opts.src_dir)
     
     os.system("rm -f ./input.txt")
+    os.system("rm -f ./input_final.txt")
+    os.system("rm -f ./new_file.txt")
     os.system("rm -f ./raw_input.txt")
     os.system("rm -f ./raw_input_filtered.txt")
     
@@ -104,8 +106,9 @@ def main(argv=None):
     injPlanner.calcOut("input.txt", "out_no_par.txt" ,  "out_par.txt", "new_file.txt")
     revertAllOrigFiles("input.txt")
     renameAllOrigFiles("input.txt")
-
-    injPlan = injPlanner.plan("input.txt", PlanType.final)
+    
+    os.system("cat new_file.txt| uniq > ./input_final.txt")
+    injPlan = injPlanner.plan("./input_final.txt", PlanType.final)
     logging.debug('plan final %s', injPlan)
     for fileName in injPlan:
         lineInj.inject(fileName, fileName[:-5],injPlan[fileName])
