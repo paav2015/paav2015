@@ -77,7 +77,7 @@ def main(argv=None):
     injPlanner = InjectPlanner()
     
     os.system("cat ./raw_input.txt | grep \".c:\" > ./raw_input_filtered.txt")
-    injPlanner.reworkLoopFile("./raw_input_filtered","./input.txt")
+    injPlanner.reworkLoopFile("./raw_input_filtered.txt","./input.txt")
     renameAllOrigFiles("input.txt")
     
     injPlan = injPlanner.plan("input.txt", PlanType.noPar)
