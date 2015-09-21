@@ -39,9 +39,11 @@ class Gluer(object):
     def genAllOutput(self,files):
         for file in files:
             bitcodeFilename =file[:-1] + "bc"
-            commandString = "opt-3.6 -load ../src/LLVMPass/libIndependentLoop.so -basicaa -mem2reg -simplifycfg -loop-simplify -loop-rotate -instcombine -indvars -indloop "+bitcodeFilename + "  -o /dev/null &>> ./raw_input.txt"
+            commandString = "opt-3.6 -load ../src/LLVMPass/libIndependentLoop.so -basicaa -mem2reg -simplifycfg -loop-simplify -loop-rotate -instcombine -indvars -indloop "+bitcodeFilename + "  -o /dev/null "
             try:
                 logging.info('Running %s', bitcodeFilename)
-                os.system(commandString)
+                output = subprocess.check_output(commandString, shell=True)
+                logging.debug('output %s', output)
+                open("./raw_input.txt","wb").write(output)
             except:
                 logging.info('failed to analize %s', bitcodeFilename)
