@@ -3,7 +3,7 @@
 TARGET=rgbyuv
 OBJS=imgio.o bmark.o
 CFLAGS=-O2 -D_GNU_SOURCE -std=c99 -g -fopenmp 
-LIBS=-lm
+LIBS=-lm -fopenmp
 CC=gcc
 
 all: $(OBJS)
