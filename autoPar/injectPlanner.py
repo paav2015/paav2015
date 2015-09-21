@@ -36,7 +36,7 @@ class InjectPlanner(object):
     def __containBracket(self,fileName,lineNumber):
         f=open(fileName)
         lines=f.readlines()
-        if "}" in lines[lineNumber-1]:
+        if ("}" in lines[lineNumber-1]) or (lines[lineNumber-1].isspace()):
             logging.debug('find }, return True for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
             f.close()
             return True
