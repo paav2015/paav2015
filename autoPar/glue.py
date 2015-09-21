@@ -39,3 +39,7 @@ class Gluer(object):
         for file in files:
             bitcodeFilename =file[:-1] + "bc"
             commandString = "opt-3.6 -load ../src/LLVMPass/libIndependentLoop.so -basicaa -mem2reg -simplifycfg -loop-simplify -loop-rotate -instcombine -indvars -indloop "+bitcodeFilename + "  -o /dev/null 2>> ./raw_input.txt"
+            try:
+                os.system(commandString)
+            except:
+                logging.info('failed to analize %s', bitcodeFilename)
