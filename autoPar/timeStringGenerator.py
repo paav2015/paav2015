@@ -47,7 +47,7 @@ class TimeStringGenerator(object):
         ret = 'static int was_printed_' + str(startLineNumber) +' = 0;\n'
         ret += 'clock_t ' + self.getEndVarName(endLineNumber) + ' = clock();\n'
         ret += 'if(!was_printed_' + str(startLineNumber) +') {\n printf("loop:' + str(startLineNumber) +':%f\\n", (double)(' + self.getEndVarName(endLineNumber) +' - '+ self.getStartVarName(startLineNumber) + ') / CLOCKS_PER_SEC);\n'
-        ret += 'was_printed' +  str(startLineNumber) +'  =1} \n'
+        ret += 'was_printed_' +  str(startLineNumber) +'  =1;} \n'
         return ret
 
     def genOpenMPLoop(self):
