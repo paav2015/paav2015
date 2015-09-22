@@ -58,9 +58,12 @@ class InjectPlanner(object):
                 else:
                     logging.debug('for file %s , didnt find for, line %s,%s', fileName,str(startLine),str(startLine-1))
                     continue
-            if not self.__containBracket(fileName, startLine,"{"):
+            if self.__containBracket(fileName, startLine,"{"):
                 endLine = startLine
-                numOfOpen = 1
+                if self.__containBracket(fileName, endLine,"}"):
+                    numOfOpen -= 1
+                if self.__containBracket(fileName, endLine,"{"):
+                    numOfOpen += 1
                 try:
                     while (numOfOpen != 0):
                         if self.__containBracket(fileName, endLine,"}"):
@@ -72,7 +75,7 @@ class InjectPlanner(object):
                     logging.debug('for file %s , didnt find }  line endline;%s', fileName,str(endLine))
                     continue
             else:
-                endLine = startLine
+                endLine = startLine + 1
             dest.write(fileName+":"+str(startLine)+":"+str(endLine)+"\n")
         dest.close()
 
