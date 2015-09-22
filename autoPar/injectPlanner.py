@@ -58,24 +58,27 @@ class InjectPlanner(object):
                 else:
                     logging.debug('for file %s , didnt find for, line %s,%s', fileName,str(startLine),str(startLine-1))
                     continue
-            if self.__containBracket(fileName, startLine,"{"):
-                endLine = startLine
-                if self.__containBracket(fileName, endLine,"}"):
-                    numOfOpen -= 1
-                if self.__containBracket(fileName, endLine,"{"):
-                    numOfOpen += 1
-                try:
-                    while (numOfOpen != 0):
-                        if self.__containBracket(fileName, endLine,"}"):
-                            numOfOpen -= 1
-                        if self.__containBracket(fileName, endLine,"{"):
-                            numOfOpen += 1
-                        endLine += 1
-                except:
-                    logging.debug('for file %s , didnt find }  line endline;%s', fileName,str(endLine))
-                    continue
-            else:
-                endLine = startLine + 1
+
+            endLine = startLine
+            foundOpen = False
+            numOfOpen = 0
+            if self.__containBracket(fileName, endLine,"}"):
+                numOfOpen -= 1
+            if self.__containBracket(fileName, endLine,"{"):
+                numOfOpen += 1
+                foundOpen = True
+            try:
+                while (numOfOpen != 0) or (foundOpen == False):
+                    if self.__containBracket(fileName, endLine,"}"):
+                        numOfOpen -= 1
+                    if self.__containBracket(fileName, endLine,"{"):
+                        numOfOpen += 1
+                        foundOpen = True
+                    endLine += 1
+            except:
+                logging.debug('for file %s , didnt find }  line endline;%s', fileName,str(endLine))
+                continue
+
             dest.write(fileName+":"+str(startLine)+":"+str(endLine)+"\n")
         dest.close()
 
