@@ -117,8 +117,6 @@ class InjectPlanner(object):
                 print lineOrig 
                 print lineNoPar.split(':')
                 print linePar.split(':')
-                if "oop" not in noPar:
-                    continue
                 if(float(lineNoPar.split(':')[2]) <= float(linePar.split(':')[2])):
                     print lineNoPar.split(':')[2]
                     f.write(lineOrig)
