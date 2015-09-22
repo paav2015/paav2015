@@ -13,7 +13,6 @@ class InjectPlanner(object):
     '''
     classdocs
     '''
-    print "huha"
 
 
     def __init__(self):
@@ -33,10 +32,10 @@ class InjectPlanner(object):
             return False
 
 
-    def __containBracket(self,fileName,lineNumber):
+    def __containBracket(self,fileName,lineNumber,char):
         f=open(fileName)
         lines=f.readlines()
-        if ("}" in lines[lineNumber-1]) or (lines[lineNumber-1].isspace()):
+        if (char in lines[lineNumber-1]) or (lines[lineNumber-1].isspace()):
             logging.debug('find }, return True for file %s line num %s, line : %s', fileName,str(lineNumber -1),lines[lineNumber-1])
             f.close()
             return True
@@ -50,23 +49,30 @@ class InjectPlanner(object):
         loopLine = open(fileOfLoops,'r').readlines()
         dest = open(newLoopFile,'w')
         for line in loopLine:
-            fileName = line.split(':')[0]
-            startLine = int(line.split(':')[1])
-            endLine = int(line.split(':')[2])
+            fileName = line.split(':')[1]
+            startLine = int(line.split(':')[2])
+            endLine = int(line.split(':')[3])
             if not self.__isForLoop(fileName,startLine):
                 if self.__isForLoop(fileName,startLine-1):
                     startLine = startLine-1
                 else:
                     logging.debug('for file %s , didnt find for, line %s,%s', fileName,str(startLine),str(startLine-1))
                     continue
-            if not self.__containBracket(fileName, endLine):
-                if self.__containBracket(fileName,endLine-1):
-                    endLine = endLine-1
-                elif self.__containBracket(fileName,endLine-2):
-                    endLine = endLine-2
-                else:
-                    logging.debug('for file %s , didnt find }, line num %s', fileName,str(endLine))
+            if not self.__containBracket(fileName, startLine,"{"):
+                endLine = startLine
+                numOfOpen = 1
+                try:
+                    while (numOfOpen != 0):
+                        if self.__containBracket(fileName, endLine,"}"):
+                            numOfOpen -= 1
+                        if self.__containBracket(fileName, endLine,"{"):
+                            numOfOpen += 1
+                        endLine += 1
+                except:
+                    logging.debug('for file %s , didnt find }  line endline;%s', fileName,str(endLine))
                     continue
+            else:
+                endLine = startLine
             dest.write(fileName+":"+str(startLine)+":"+str(endLine)+"\n")
         dest.close()
 
@@ -105,7 +111,8 @@ class InjectPlanner(object):
                 print lineOrig 
                 print lineNoPar.split(':')
                 print linePar.split(':')
-                
+                if "oop" not in noPar:
+                    continue
                 if(float(lineNoPar.split(':')[2]) <= float(linePar.split(':')[2])):
                     print lineNoPar.split(':')[2]
                     f.write(lineOrig)

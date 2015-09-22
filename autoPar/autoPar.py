@@ -78,7 +78,7 @@ def main(argv=None):
     lineInj = LineInjector()
     injPlanner = InjectPlanner()
     
-    os.system("cat ./raw_input.txt | grep \".c:\" > ./raw_input_filtered.txt")
+    os.system("cat ./raw_input.txt | grep Independent_Loop  > ./raw_input_filtered.txt")
     injPlanner.reworkLoopFile("./raw_input_filtered.txt","./input.txt")
     renameAllOrigFiles("input.txt")
     
