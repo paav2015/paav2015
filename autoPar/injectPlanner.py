@@ -29,7 +29,7 @@ class InjectPlanner(object):
             f.close()
             return ""
     def getLineID(self, path, startLine):
-        return re.sub(r'\W+', '', your_string) + str(startLine)
+        return re.sub(r'\W+', '', path) + str(startLine)
 
     def __isForLoop(self,fileName,lineNumber):
         f=open(fileName)
@@ -91,7 +91,7 @@ class InjectPlanner(object):
                 logging.debug('for file %s , didnt find }  line endline;%s', fileName,str(endLine))
                 continue
 
-            dest.write(fileName+":"+str(startLine)+":"+str(endLine)+":" + __getLineID(fileName,startLine) + "\n")
+            dest.write(fileName+":"+str(startLine)+":"+str(endLine)+":" + self.getLineID(fileName,startLine) + "\n")
         dest.close()
 
         
@@ -119,14 +119,13 @@ class InjectPlanner(object):
             else:
                 insertPlanDic[fileName][startLine-1] = stringGen.genStartTimeString(startLine)
             if (planType != PlanType.final):
-                insertPlanDic[fileName][endLine-1] = stringGen.genEndTimeString(startLine, endLine) 
+                insertPlanDic[fileName][endLine-1] = stringGen.genEndTimeString(fileName, startLine, endLine) 
         return insertPlanDic
     
     def calcOut(self, orig, noPar ,  par, newfile):
         f = open(newfile, 'a')
         with open(noPar) as noParFile,open(par) as parFile:
             for lineNoPar, linePar in izip(noParFile, parFile):
-                print lineOrig 
                 print lineNoPar.split(':')
                 print linePar.split(':')
                 if(float(lineNoPar.split(':')[2]) <= float(linePar.split(':')[2])):

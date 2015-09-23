@@ -24,6 +24,11 @@ int autoPar()
 '''
 
 
+
+
+
+from  injectPlanner import InjectPlanner
+
 class TimeStringGenerator(object):
     '''
     classdocs
