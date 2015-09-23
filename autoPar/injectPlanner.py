@@ -131,7 +131,7 @@ class InjectPlanner(object):
     def calcOut(self, orig, noPar ,  par, newfile):
         f = open(newfile, 'a')
         with open(noPar) as noParFile,open(par) as parFile:
-            for lineNoPar in izip(noParFile):
+            for lineNoPar in noParFile:
                 print lineNoPar.split(':')
                 if "loop" not in lineNoPar:
                     continue
