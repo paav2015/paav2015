@@ -74,19 +74,25 @@ class InjectPlanner(object):
             endLine = startLine
             foundOpen = False
             numOfOpen = 0
+            print "-----------------------start search -----"
+            print "line is" + str(endLine)
             if self.__containBracket(fileName, endLine,"}"):
                 numOfOpen -= 1
+                print "found  }:" + str(numOfOpen)
             if self.__containBracket(fileName, endLine,"{"):
                 numOfOpen += 1
+                print "found  {:" + str(numOfOpen)
                 foundOpen = True
             try:
                 while (numOfOpen != 0) or (foundOpen == False):
+                    endLine += 1
                     if self.__containBracket(fileName, endLine,"}"):
                         numOfOpen -= 1
+                        print "found  }:" + str(numOfOpen) +"line:" + str(endLine)
                     if self.__containBracket(fileName, endLine,"{"):
                         numOfOpen += 1
+                        print "found  {:" + str(numOfOpen)  +"line:" + str(endLine)
                         foundOpen = True
-                    endLine += 1
             except:
                 logging.debug('for file %s , didnt find }  line endline;%s', fileName,str(endLine))
                 continue
@@ -128,6 +134,8 @@ class InjectPlanner(object):
             for lineNoPar, linePar in izip(noParFile, parFile):
                 print lineNoPar.split(':')
                 print linePar.split(':')
+                if "loop" not in lineNoPar:
+                    continue
                 if(float(lineNoPar.split(':')[2]) <= float(linePar.split(':')[2])):
                     print lineNoPar.split(':')[2],lineNoPar.split(':')[3]
                     if (linePar.split(':')[3] != lineNoPar.split(':')[3]):
