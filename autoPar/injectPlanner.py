@@ -1,6 +1,7 @@
 from timeStringGenerator import TimeStringGenerator
 from itertools import izip
 import logging
+import re
 
 class PlanType:
     noPar = 1
@@ -19,6 +20,17 @@ class InjectPlanner(object):
         '''
         Constructor
         '''
+    def __grep(self, fileName, matchString):
+        with open(fileName) as f:
+            for line in f:
+                if matchString in line:
+                    f.close()
+                    return line
+            f.close()
+            return ""
+    def getLineID(self, path, startLine):
+        return re.sub(r'\W+', '', your_string) + str(startLine)
+
     def __isForLoop(self,fileName,lineNumber):
         f=open(fileName)
         lines=f.readlines()
@@ -79,7 +91,7 @@ class InjectPlanner(object):
                 logging.debug('for file %s , didnt find }  line endline;%s', fileName,str(endLine))
                 continue
 
-            dest.write(fileName+":"+str(startLine)+":"+str(endLine)+"\n")
+            dest.write(fileName+":"+str(startLine)+":"+str(endLine)+":" + __getLineID(fileName,startLine) + "\n")
         dest.close()
 
         
@@ -112,12 +124,17 @@ class InjectPlanner(object):
     
     def calcOut(self, orig, noPar ,  par, newfile):
         f = open(newfile, 'a')
-        with open(orig) as origFile, open(noPar) as noParFile,open(par) as parFile:
-            for lineOrig, lineNoPar, linePar in izip(origFile, noParFile, parFile):
+        with open(noPar) as noParFile,open(par) as parFile:
+            for lineNoPar, linePar in izip(noParFile, parFile):
                 print lineOrig 
                 print lineNoPar.split(':')
                 print linePar.split(':')
                 if(float(lineNoPar.split(':')[2]) <= float(linePar.split(':')[2])):
-                    print lineNoPar.split(':')[2]
-                    f.write(lineOrig)
+                    print lineNoPar.split(':')[2],lineNoPar.split(':')[3]
+                    if (linePar.split(':')[3] != lineNoPar.split(':')[3]):
+                        print "ERROR, id not match"
+                        print lineNoPar.split(':')[3]
+                        print linePar.split(':')[3]
+                    newLine = self.__grep(orig, linePar.split(':')[3])
+                    f.write(newLine)
         f.close()
