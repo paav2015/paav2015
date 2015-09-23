@@ -24,17 +24,14 @@ int autoPar()
 '''
 
 
-
-
-
-from  injectPlanner import InjectPlanner
-
 class TimeStringGenerator(object):
     '''
     classdocs
     '''
 
-
+    def getLineID(self, path, startLine):
+        return re.sub(r'\W+', '', path) + str(startLine)
+    
     def __init__(self):
         '''
         Constructor
@@ -50,7 +47,7 @@ class TimeStringGenerator(object):
 
     def genEndTimeString(self, filePath, startLineNumber, endLineNumber):
         lineInj = LineInjector()
-        id = lineInj.getLineID(filePath, startLineNumber)
+        id = self.getLineID(filePath, startLineNumber)
         ret = 'static int was_printed_' + str(startLineNumber) +' = 0;\n'
         ret += 'clock_t ' + self.getEndVarName(endLineNumber) + ' = clock();\n'
         ret += 'was_printed_' +  str(startLineNumber) +'  =1;} \n'
