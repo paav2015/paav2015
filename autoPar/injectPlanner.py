@@ -74,24 +74,18 @@ class InjectPlanner(object):
             endLine = startLine
             foundOpen = False
             numOfOpen = 0
-            print "-----------------------start search -----"
-            print "line is" + str(endLine)
             if self.__containBracket(fileName, endLine,"}"):
                 numOfOpen -= 1
-                print "found  }:" + str(numOfOpen)
             if self.__containBracket(fileName, endLine,"{"):
                 numOfOpen += 1
-                print "found  {:" + str(numOfOpen)
                 foundOpen = True
             try:
                 while (numOfOpen != 0) or (foundOpen == False):
                     endLine += 1
                     if self.__containBracket(fileName, endLine,"}"):
                         numOfOpen -= 1
-                        print "found  }:" + str(numOfOpen) +"line:" + str(endLine)
                     if self.__containBracket(fileName, endLine,"{"):
                         numOfOpen += 1
-                        print "found  {:" + str(numOfOpen)  +"line:" + str(endLine)
                         foundOpen = True
             except:
                 logging.debug('for file %s , didnt find }  line endline;%s', fileName,str(endLine))
@@ -132,12 +126,10 @@ class InjectPlanner(object):
         f = open(newfile, 'a')
         with open(noPar) as noParFile,open(par) as parFile:
             for lineNoPar in noParFile:
-                print lineNoPar.split(':')
                 if "loop" not in lineNoPar:
                     continue
                 linePar = self.__grep(par, lineNoPar.split(':')[3])
                 if(float(lineNoPar.split(':')[2]) <= float(linePar.split(':')[2])):
-                    print lineNoPar.split(':')[2],lineNoPar.split(':')[3]
                     if (linePar.split(':')[3] != lineNoPar.split(':')[3]):
                         print "ERROR, id not match"
                         print lineNoPar.split(':')[3]
