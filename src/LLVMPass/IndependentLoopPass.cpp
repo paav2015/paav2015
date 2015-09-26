@@ -9,6 +9,7 @@
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/DependenceAnalysis.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/CommandLine.h"
 #include "IndependentLoopPass.h"
 
 
@@ -18,7 +19,8 @@ using namespace llvm;
 #define IF_DBG if (!g_dbg) {} else
 #define MY_DBG_PRINT IF_DBG errs()
 
-static bool g_dbg = false;
+static cl::opt<bool> g_dbg("indloop-dbg", cl::init(false), cl::Hidden, cl::ZeroOrMore, cl::desc("Enable debug prints."));
+static cl::opt<bool> g_printJson("indloop-json", cl::init(false), cl::Hidden, cl::ZeroOrMore, cl::desc("Use JSON as output format."));
 
 namespace {
 
@@ -275,8 +277,11 @@ namespace {
 
             }
 
-            //errs() << functionLoopInfo.toJson()
-            errs() << functionLoopInfo.toSimpleString();
+            if (g_printJson) {
+                errs() << functionLoopInfo.toJson();
+            } else {
+                errs() << functionLoopInfo.toSimpleString();
+            }
 
 			return false;
 		}
@@ -284,7 +289,6 @@ namespace {
 
 		virtual bool doInitialization(Module &M)
 		{
-            g_dbg = true;
 			return true;
 		}
 
