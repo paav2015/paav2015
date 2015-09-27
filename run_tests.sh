@@ -8,6 +8,6 @@ TESTS_DIR=./src/Samples
 for test_file in ${TESTS_DIR}/test*.bc
 do
 	echo "**** Running on ${test_file} ****"
-	${OPT} -load ${LIB_NAME} ${SUPPORTING_PASSES} ${PASS_NAME} -indloop-json -indloop-dbg ${test_file} -o /dev/null
+	${OPT} -load ${LIB_NAME} ${SUPPORTING_PASSES} ${PASS_NAME} ${test_file} -o /dev/null
 done
 

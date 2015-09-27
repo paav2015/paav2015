@@ -170,8 +170,6 @@ namespace {
                     continue;
                 }
 
-                LocalLoop->getSubLoops();
-
                 // Unless proven otherwise
                 loopDependencyInfo.bIsLoopIndependent = true;
 
@@ -183,84 +181,89 @@ namespace {
                     loopDependencyInfo.bHasInductiveVariable = true;
                 }
 
-                const std::vector<BasicBlock *> & loopBlocks = LocalLoop->getBlocks();
-                std::vector<BasicBlock *>::const_iterator SrcBBit = loopBlocks.begin();
-                while (SrcBBit != loopBlocks.end() && loopDependencyInfo.bIsLoopIndependent)
+                // Create a vector of instructions to test
+                std::vector<const Instruction *> insts;
+                const std::vector<BasicBlock *> &loopBlocks = LocalLoop->getBlocks();
+                std::vector<BasicBlock *>::const_iterator SrcBBit;
+                for(SrcBBit = loopBlocks.begin(); SrcBBit != loopBlocks.end(); ++SrcBBit)
                 {
                     BasicBlock * SrcBB = *SrcBBit;
-                    for (BasicBlock::const_iterator SrcInstIt = SrcBB->begin();
-                         SrcInstIt != SrcBB->end() && loopDependencyInfo.bIsLoopIndependent;
-                         ++SrcInstIt)
+                    for (BasicBlock::const_iterator SrcInstIt = SrcBB->begin(); SrcInstIt != SrcBB->end(); ++SrcInstIt)
                     {
                         if (isa<StoreInst>(*SrcInstIt) || isa<LoadInst>(*SrcInstIt))
                         {
-                            BasicBlock * DstBB = SrcBB;
-                            std::vector<BasicBlock *>::const_iterator DstBBit = SrcBBit;
-                            BasicBlock::const_iterator DstInstIt = SrcInstIt;
-                            bool hasMoreInstructions = (DstInstIt != DstBB->end());
+                            insts.push_back(SrcInstIt);
+                        }
+                    }
+                }
 
-                            MY_DBG_PRINT << "Source inst: ";
-                            IF_DBG SrcInstIt->dump();
+                const std::vector<Loop *> & NestedLoops = LocalLoop->getSubLoops();
 
-                            while (hasMoreInstructions && loopDependencyInfo.bIsLoopIndependent)
+                MY_DBG_PRINT << "There are " << NestedLoops.size() << " nested loops\n";
+
+                std::vector<Loop *>::const_iterator NestedLoopsIt;
+                for (NestedLoopsIt = NestedLoops.begin(); NestedLoopsIt != NestedLoops.end(); ++NestedLoopsIt)
+                {
+                    const Loop * NestedLoop = * NestedLoopsIt;
+                    const std::vector<BasicBlock *> & NestedLoopBlocks = NestedLoop->getBlocks();
+                    std::vector<BasicBlock *>::const_iterator SrcBBit2;
+
+                    for(SrcBBit2 = NestedLoopBlocks.begin(); SrcBBit2 != NestedLoopBlocks.end(); ++SrcBBit2)
+                    {
+                        BasicBlock * SrcBB2 = *SrcBBit2;
+                        for (BasicBlock::const_iterator SrcInstIt2 = SrcBB2->begin(); SrcInstIt2 != SrcBB2->end(); ++SrcInstIt2)
+                        {
+                            if (isa<StoreInst>(*SrcInstIt2) || isa<LoadInst>(*SrcInstIt2))
                             {
-
-                                if (isa<StoreInst>(*DstInstIt) || isa<LoadInst>(*DstInstIt)) {
-                                    MY_DBG_PRINT << "Comparing against inst: ";
-                                    IF_DBG DstInstIt->dump();
-
-                                    auto D = da.depends(const_cast<Instruction *>(&(*SrcInstIt)),
-                                                        const_cast<Instruction *>(&(*DstInstIt)), true);
-                                    if (D) {
-                                        MY_DBG_PRINT << "Dependencies in loop starting at " << loopDependencyInfo.nFirstSourceLine << "\n";
-                                        IF_DBG D->dump(errs());
-
-                                        // TODO: get direction, avoid "="
-                                        if (D->isInput())
-                                        {
-                                            MY_DBG_PRINT << "Input dependency - ignore\n";
-                                        }
-                                        else if (D->isConfused())
-                                        {
-                                            MY_DBG_PRINT << "Confused - assume dependency\n";
-                                            loopDependencyInfo.bIsLoopIndependent = false;
-                                        }
-                                        else if (!D->isLoopIndependent())
-                                        {
-                                            MY_DBG_PRINT << "Loop is not independent - assume dependency\n";
-                                            loopDependencyInfo.bIsLoopIndependent = false;
-                                        }
-                                        else
-                                        {
-                                            MY_DBG_PRINT << "Dependency does not cause loop dependency\n";
-                                        }
-                                    }
-
-
-                                }
-
-                                // Advance, proceed to the next block if required
-                                ++DstInstIt;
-                                if (DstInstIt == DstBB->end())
-                                {
-                                    ++DstBBit;
-                                    if (DstBBit != loopBlocks.end())
-                                    {
-                                        DstBB = *DstBBit;
-                                        DstInstIt = DstBB->begin();
-                                    }
-                                    else
-                                    {
-                                        hasMoreInstructions = false;
-                                    }
-                                }
+                                insts.push_back(SrcInstIt2);
                             }
+                        }
+                    }
+                }
 
+                std::vector<const Instruction *>::const_iterator SrcInstIt;
+                for(SrcInstIt = insts.begin(); SrcInstIt != insts.end(); ++SrcInstIt)
+                {
+                    const Instruction * SrcInst = *SrcInstIt;
+                    MY_DBG_PRINT << "** Source inst: ";
+                    IF_DBG SrcInst->dump();
 
+                    std::vector<const Instruction *>::const_iterator DstInstIt;
+                    for(DstInstIt = SrcInstIt; DstInstIt != insts.end(); ++DstInstIt)
+                    {
+                        const Instruction * DstInst = *DstInstIt;
+                        MY_DBG_PRINT << "** Comparing against inst: ";
+                        IF_DBG DstInst->dump();
+
+                        auto D = da.depends(const_cast<Instruction *>(&(*SrcInst)),
+                                            const_cast<Instruction *>(&(*DstInst)), true);
+                        if (D) {
+                            MY_DBG_PRINT << "Dependencies in loop starting at " << loopDependencyInfo.nFirstSourceLine << "\n";
+                            IF_DBG D->dump(errs());
+
+                            if (D->isConfused())
+                            {
+                                MY_DBG_PRINT << "Confused - assume dependency\n";
+                                loopDependencyInfo.bIsLoopIndependent = false;
+                            }
+                            else if (!D->isLoopIndependent())
+                            {
+                                MY_DBG_PRINT << "Loop is not independent - assume dependency\n";
+                                loopDependencyInfo.bIsLoopIndependent = false;
+                            }
+                            else
+                            {
+                                MY_DBG_PRINT << "Dependency does not cause loop dependency\n";
+                            }
+                        }
+
+                        if (!loopDependencyInfo.bIsLoopIndependent)
+                        {
+                            MY_DBG_PRINT << "Dependency was found, abort loop\n";
+                            break;
                         }
                     }
 
-                    ++SrcBBit;
                 }
 
                 // Try to understand where is the first block after this loop ends
