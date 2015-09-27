@@ -170,6 +170,8 @@ namespace {
                     continue;
                 }
 
+                LocalLoop->getSubLoops();
+
                 // Unless proven otherwise
                 loopDependencyInfo.bIsLoopIndependent = true;
 
@@ -213,9 +215,25 @@ namespace {
                                         MY_DBG_PRINT << "Dependencies in loop starting at " << loopDependencyInfo.nFirstSourceLine << "\n";
                                         IF_DBG D->dump(errs());
 
-                                        // In doubt, assume dependence
-                                        if (!D->isInput() && (D->isConfused() || !D->isLoopIndependent()))
+                                        // TODO: get direction, avoid "="
+                                        if (D->isInput())
+                                        {
+                                            MY_DBG_PRINT << "Input dependency - ignore\n";
+                                        }
+                                        else if (D->isConfused())
+                                        {
+                                            MY_DBG_PRINT << "Confused - assume dependency\n";
                                             loopDependencyInfo.bIsLoopIndependent = false;
+                                        }
+                                        else if (!D->isLoopIndependent())
+                                        {
+                                            MY_DBG_PRINT << "Loop is not independent - assume dependency\n";
+                                            loopDependencyInfo.bIsLoopIndependent = false;
+                                        }
+                                        else
+                                        {
+                                            MY_DBG_PRINT << "Dependency does not cause loop dependency\n";
+                                        }
                                     }
 
 
